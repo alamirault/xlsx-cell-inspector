@@ -1,0 +1,123 @@
+/* Upload page */
+.uploadPage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  gap: 2rem;
+  background: linear-gradient(135deg, #f0f4ff 0%, #fafafa 100%);
+}
+
+.uploadHeader {
+  text-align: center;
+}
+
+.logo {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.logoIcon {
+  font-size: 1.8rem;
+}
+
+.tagline {
+  color: #64748b;
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+}
+
+.privacy {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Inspector layout */
+.inspectorLayout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 44px;
+  background: #1e293b;
+  color: #e2e8f0;
+  flex-shrink: 0;
+  gap: 16px;
+}
+
+.topBarLogo {
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: -0.01em;
+}
+
+.sheetInfo {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  flex: 1;
+}
+
+.resetBtn {
+  background: none;
+  border: 1px solid #475569;
+  color: #94a3b8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: all 0.15s;
+}
+
+.resetBtn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.gridPane {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.inspectorPane {
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid #e2e8f0;
+  background: #fff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+  }
+
+  .inspectorPane {
+    width: 100%;
+    height: 40vh;
+    border-left: none;
+    border-top: 1px solid #e2e8f0;
+  }
+}

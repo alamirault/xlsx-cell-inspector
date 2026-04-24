@@ -1,0 +1,112 @@
+.wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #fff;
+  font-size: 0.8rem;
+  font-family: 'Calibri', 'Segoe UI', sans-serif;
+}
+
+.cornerCell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 3;
+  background: #f1f5f9;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.colHeadersOuter {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  overflow: hidden;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.colHeadersInner {
+  position: relative;
+  height: 100%;
+}
+
+.colHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-right: 1px solid #e2e8f0;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.scroll {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.rowHeadersOuter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  float: left;
+  overflow: hidden;
+  background: #f1f5f9;
+  border-right: 1px solid #cbd5e1;
+}
+
+.rowHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  color: #64748b;
+  font-size: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  user-select: none;
+}
+
+.gridArea {
+  position: absolute;
+  top: 0;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  border-right: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: background 0.1s;
+  box-sizing: border-box;
+}
+
+.cell:hover {
+  background: #f0f9ff !important;
+}
+
+.selected {
+  outline: 2px solid #6366f1;
+  outline-offset: -2px;
+  z-index: 1;
+}
+
+.cellText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
