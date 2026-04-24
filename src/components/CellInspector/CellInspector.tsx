@@ -66,7 +66,8 @@ export function CellInspector({ cell, cellRef, sheet }: Props) {
   const rowInfo = sheet.rows.find((r) => r.index === rowNum - 1)
 
   const hasBorders =
-    border?.top || border?.right || border?.bottom || border?.left || border?.diagonal
+    border?.top || border?.right || border?.bottom || border?.left || border?.diagonal ||
+    border?.diagonalUp || border?.diagonalDown
 
   return (
     <div className={styles.panel}>
@@ -160,6 +161,12 @@ export function CellInspector({ cell, cellRef, sheet }: Props) {
                 </div>
               )
             })}
+            {border?.diagonalUp !== undefined && (
+              <Prop label="Diagonale montante" value={border.diagonalUp ? '✓ Oui' : 'Non'} />
+            )}
+            {border?.diagonalDown !== undefined && (
+              <Prop label="Diagonale descendante" value={border.diagonalDown ? '✓ Oui' : 'Non'} />
+            )}
           </>
         )}
       </Section>

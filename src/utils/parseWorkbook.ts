@@ -17,61 +17,71 @@ function extractStyle(raw: any): CellStyle | undefined {
   if (!raw) return undefined
   const style: CellStyle = {}
 
-  if (raw.font) {
+  // SheetJS can produce two formats for cell.s:
+  // - nested: { font: {...}, fill: {...}, border: {...} }
+  // - flat:   { patternType, fgColor, bgColor, bold, ... } (props directly on cell.s)
+  const fontSrc = raw.font ?? (raw.bold !== undefined || raw.italic !== undefined || raw.name !== undefined || raw.sz !== undefined ? raw : null)
+  if (fontSrc) {
     style.font = {
-      name: raw.font.name,
-      sz: raw.font.sz,
-      bold: raw.font.bold,
-      italic: raw.font.italic,
-      underline: raw.font.underline,
-      strike: raw.font.strike,
-      color: xlsxColorToHex(raw.font.color),
+      name: fontSrc.name,
+      sz: fontSrc.sz,
+      bold: fontSrc.bold,
+      italic: fontSrc.italic,
+      underline: fontSrc.underline,
+      strike: fontSrc.strike,
+      color: xlsxColorToHex(fontSrc.color),
     }
   }
 
-  if (raw.fill) {
+  const fillSrc = raw.fill ?? (raw.patternType !== undefined ? raw : null)
+  if (fillSrc && fillSrc.patternType !== 'none') {
     style.fill = {
-      patternType: raw.fill.patternType,
-      fgColor: xlsxColorToHex(raw.fill.fgColor),
-      bgColor: xlsxColorToHex(raw.fill.bgColor),
+      patternType: fillSrc.patternType,
+      fgColor: xlsxColorToHex(fillSrc.fgColor),
+      bgColor: xlsxColorToHex(fillSrc.bgColor),
     }
   }
 
-  if (raw.border) {
+  const borderSrc = raw.border ?? (raw.top !== undefined || raw.left !== undefined || raw.right !== undefined || raw.bottom !== undefined ? raw : null)
+  if (borderSrc) {
     style.border = {
-      top: raw.border.top
-        ? { style: raw.border.top.style, color: xlsxColorToHex(raw.border.top.color) }
+      top: borderSrc.top
+        ? { style: borderSrc.top.style, color: xlsxColorToHex(borderSrc.top.color) }
         : undefined,
-      right: raw.border.right
-        ? { style: raw.border.right.style, color: xlsxColorToHex(raw.border.right.color) }
+      right: borderSrc.right
+        ? { style: borderSrc.right.style, color: xlsxColorToHex(borderSrc.right.color) }
         : undefined,
-      bottom: raw.border.bottom
-        ? { style: raw.border.bottom.style, color: xlsxColorToHex(raw.border.bottom.color) }
+      bottom: borderSrc.bottom
+        ? { style: borderSrc.bottom.style, color: xlsxColorToHex(borderSrc.bottom.color) }
         : undefined,
-      left: raw.border.left
-        ? { style: raw.border.left.style, color: xlsxColorToHex(raw.border.left.color) }
+      left: borderSrc.left
+        ? { style: borderSrc.left.style, color: xlsxColorToHex(borderSrc.left.color) }
         : undefined,
-      diagonal: raw.border.diagonal
-        ? { style: raw.border.diagonal.style, color: xlsxColorToHex(raw.border.diagonal.color) }
+      diagonal: borderSrc.diagonal
+        ? { style: borderSrc.diagonal.style, color: xlsxColorToHex(borderSrc.diagonal.color) }
         : undefined,
+      diagonalUp: borderSrc.diagonalUp,
+      diagonalDown: borderSrc.diagonalDown,
     }
   }
 
-  if (raw.alignment) {
+  const alignSrc = raw.alignment ?? (raw.horizontal !== undefined || raw.vertical !== undefined || raw.wrapText !== undefined ? raw : null)
+  if (alignSrc) {
     style.alignment = {
-      horizontal: raw.alignment.horizontal,
-      vertical: raw.alignment.vertical,
-      wrapText: raw.alignment.wrapText,
-      indent: raw.alignment.indent,
-      shrinkToFit: raw.alignment.shrinkToFit,
-      textRotation: raw.alignment.textRotation,
+      horizontal: alignSrc.horizontal,
+      vertical: alignSrc.vertical,
+      wrapText: alignSrc.wrapText,
+      indent: alignSrc.indent,
+      shrinkToFit: alignSrc.shrinkToFit,
+      textRotation: alignSrc.textRotation,
     }
   }
 
-  if (raw.protection) {
+  const protSrc = raw.protection ?? (raw.locked !== undefined || raw.hidden !== undefined ? raw : null)
+  if (protSrc) {
     style.protection = {
-      locked: raw.protection.locked,
-      hidden: raw.protection.hidden,
+      locked: protSrc.locked,
+      hidden: protSrc.hidden,
     }
   }
 

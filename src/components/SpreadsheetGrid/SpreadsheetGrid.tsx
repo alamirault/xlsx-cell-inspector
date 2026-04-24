@@ -113,11 +113,32 @@ export function SpreadsheetGrid({ sheet, sheetIndex, selectedCell, onCellClick }
                 selectedCell?.ref === cellRef && selectedCell.sheetIndex === sheetIndex
 
               const cellStyle = cell?.style
-              const bgColor = cellStyle?.fill?.fgColor
-              const color = cellStyle?.font?.color
-              const fontWeight = cellStyle?.font?.bold ? 'bold' : undefined
-              const fontStyle = cellStyle?.font?.italic ? 'italic' : undefined
-              const textDecoration = cellStyle?.font?.underline ? 'underline' : undefined
+              const font = cellStyle?.font
+              const fill = cellStyle?.fill
+              const border = cellStyle?.border
+              const alignment = cellStyle?.alignment
+
+              const bgColor = fill?.fgColor
+              const color = font?.color
+              const fontWeight = font?.bold ? 'bold' : undefined
+              const fontStyle = font?.italic ? 'italic' : undefined
+              const tdParts: string[] = []
+              if (font?.underline) tdParts.push('underline')
+              if (font?.strike) tdParts.push('line-through')
+              const textDecoration = tdParts.length ? tdParts.join(' ') : undefined
+              const fontSize = font?.sz ? `${font.sz}pt` : undefined
+              const fontFamily = font?.name
+              const textAlign = alignment?.horizontal as React.CSSProperties['textAlign']
+              const whiteSpace = alignment?.wrapText ? 'normal' : undefined
+              const alignItems =
+                alignment?.vertical === 'center' ? 'center'
+                : alignment?.vertical === 'top' ? 'flex-start'
+                : alignment?.vertical === 'bottom' ? 'flex-end'
+                : undefined
+
+              const borderStyleMap: Record<string, string> = { thin: '1px', medium: '2px', thick: '3px', dashed: '1px', dotted: '1px', double: '3px' }
+              const makeBorder = (side: typeof border extends undefined ? never : NonNullable<typeof border>['top']) =>
+                side?.style ? `${borderStyleMap[side.style] ?? '1px'} solid ${side.color ?? '#000'}` : undefined
 
               return (
                 <div
@@ -134,6 +155,15 @@ export function SpreadsheetGrid({ sheet, sheetIndex, selectedCell, onCellClick }
                     fontWeight,
                     fontStyle,
                     textDecoration,
+                    fontSize,
+                    fontFamily,
+                    textAlign,
+                    whiteSpace,
+                    alignItems,
+                    borderTop: makeBorder(border?.top),
+                    borderRight: makeBorder(border?.right),
+                    borderBottom: makeBorder(border?.bottom),
+                    borderLeft: makeBorder(border?.left),
                   }}
                   onClick={() =>
                     onCellClick({
