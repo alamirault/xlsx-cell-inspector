@@ -51,7 +51,12 @@ describe('CellInspector — section Police', () => {
       rawValue: 'hello',
       formattedValue: 'hello',
       type: 'string',
-      style: { font: { color: '#FF0000', bold: true } },
+      resolvedStyle: {
+        font: {
+          color: { value: '#FF0000', source: { element: 'font[0]' } },
+          bold: { value: true, source: { element: 'font[0]' } },
+        },
+      },
     })
     render(<CellInspector cell={cell} cellRef="A1" sheet={sheet} />)
     expect(screen.getByText('#FF0000')).toBeInTheDocument()
@@ -61,16 +66,17 @@ describe('CellInspector — section Police', () => {
 
 describe('CellInspector — section Bordures', () => {
   it('liste les 4 côtés avec style et couleur', () => {
+    const src = { element: 'border[0]' }
     const cell = makeCell('A1', {
       rawValue: 'x',
       formattedValue: 'x',
       type: 'string',
-      style: {
+      resolvedStyle: {
         border: {
-          top: { style: 'thin', color: '#000000' },
-          right: { style: 'thin', color: '#000000' },
-          bottom: { style: 'medium', color: '#000000' },
-          left: { style: 'thin', color: '#000000' },
+          top: { style: { value: 'thin', source: src }, color: { value: '#000000', source: src } },
+          right: { style: { value: 'thin', source: src }, color: { value: '#000000', source: src } },
+          bottom: { style: { value: 'medium', source: src }, color: { value: '#000000', source: src } },
+          left: { style: { value: 'thin', source: src }, color: { value: '#000000', source: src } },
         },
       },
     })
@@ -85,11 +91,17 @@ describe('CellInspector — section Bordures', () => {
 
 describe('CellInspector — section Alignement', () => {
   it('affiche wrapText activé', () => {
+    const src = { element: 'xf[0]' }
     const cell = makeCell('A1', {
       rawValue: 'text',
       formattedValue: 'text',
       type: 'string',
-      style: { alignment: { wrapText: true, horizontal: 'center' } },
+      resolvedStyle: {
+        alignment: {
+          wrapText: { value: true, source: src },
+          horizontal: { value: 'center', source: src },
+        },
+      },
     })
     render(<CellInspector cell={cell} cellRef="A1" sheet={sheet} />)
     expect(screen.getByText(/activé/i)).toBeInTheDocument()

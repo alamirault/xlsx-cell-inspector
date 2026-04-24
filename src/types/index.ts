@@ -1,56 +1,64 @@
-export interface CellBorderSide {
-  style?: string
-  color?: string
+export interface ResolvedProperty<T> {
+  value: T
+  source: { element: string }
 }
 
-export interface CellBorders {
-  top?: CellBorderSide
-  right?: CellBorderSide
-  bottom?: CellBorderSide
-  left?: CellBorderSide
-  diagonal?: CellBorderSide
-  diagonalUp?: boolean
-  diagonalDown?: boolean
+export interface ResolvedFont {
+  bold?: ResolvedProperty<boolean>
+  italic?: ResolvedProperty<boolean>
+  underline?: ResolvedProperty<boolean>
+  strike?: ResolvedProperty<boolean>
+  size?: ResolvedProperty<number>
+  name?: ResolvedProperty<string>
+  family?: ResolvedProperty<number>
+  color?: ResolvedProperty<string>
+  charset?: ResolvedProperty<number>
+  vertAlign?: ResolvedProperty<string>
 }
 
-export interface CellFont {
-  name?: string
-  sz?: number
-  bold?: boolean
-  italic?: boolean
-  underline?: boolean
-  strike?: boolean
-  color?: string
+export interface ResolvedFill {
+  patternType?: ResolvedProperty<string>
+  fgColor?: ResolvedProperty<string>
+  bgColor?: ResolvedProperty<string>
 }
 
-export interface CellFill {
-  patternType?: string
-  fgColor?: string
-  bgColor?: string
+export interface ResolvedBorderSide {
+  style?: ResolvedProperty<string>
+  color?: ResolvedProperty<string>
 }
 
-export interface CellAlignment {
-  horizontal?: string
-  vertical?: string
-  wrapText?: boolean
-  indent?: number
-  shrinkToFit?: boolean
-  textRotation?: number
+export interface ResolvedBorder {
+  top?: ResolvedBorderSide
+  right?: ResolvedBorderSide
+  bottom?: ResolvedBorderSide
+  left?: ResolvedBorderSide
+  diagonal?: ResolvedBorderSide
+  diagonalUp?: ResolvedProperty<boolean>
+  diagonalDown?: ResolvedProperty<boolean>
 }
 
-export interface CellProtection {
-  locked?: boolean
-  hidden?: boolean
+export interface ResolvedAlignment {
+  horizontal?: ResolvedProperty<string>
+  vertical?: ResolvedProperty<string>
+  wrapText?: ResolvedProperty<boolean>
+  indent?: ResolvedProperty<number>
+  shrinkToFit?: ResolvedProperty<boolean>
+  textRotation?: ResolvedProperty<number>
 }
 
-export interface CellStyle {
-  font?: CellFont
-  fill?: CellFill
-  border?: CellBorders
-  alignment?: CellAlignment
-  protection?: CellProtection
-  numFmt?: string
-  numFmtId?: number
+export interface ResolvedProtection {
+  locked?: ResolvedProperty<boolean>
+  hidden?: ResolvedProperty<boolean>
+}
+
+export interface ResolvedStyle {
+  font?: ResolvedFont
+  fill?: ResolvedFill
+  border?: ResolvedBorder
+  alignment?: ResolvedAlignment
+  protection?: ResolvedProtection
+  numFmt?: ResolvedProperty<string>
+  numFmtId?: ResolvedProperty<number>
 }
 
 export type CellType = 'string' | 'number' | 'boolean' | 'date' | 'formula' | 'empty'
@@ -61,7 +69,7 @@ export interface CellData {
   formattedValue: string
   type: CellType
   formula?: string
-  style?: CellStyle
+  resolvedStyle?: ResolvedStyle
 }
 
 export interface ColumnInfo {

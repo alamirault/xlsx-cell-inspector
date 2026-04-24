@@ -22,7 +22,10 @@ function buildSheet() {
         rawValue: 42,
         formattedValue: '42',
         type: 'number',
-        style: { fill: { fgColor: '#FF0000' }, font: { bold: true } },
+        resolvedStyle: {
+          fill: { fgColor: { value: '#FF0000', source: { element: 'fill[1]' } } },
+          font: { bold: { value: true, source: { element: 'font[1]' } } },
+        },
       }),
     },
   })

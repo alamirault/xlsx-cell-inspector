@@ -112,33 +112,33 @@ export function SpreadsheetGrid({ sheet, sheetIndex, selectedCell, onCellClick }
               const isSelected =
                 selectedCell?.ref === cellRef && selectedCell.sheetIndex === sheetIndex
 
-              const cellStyle = cell?.style
-              const font = cellStyle?.font
-              const fill = cellStyle?.fill
-              const border = cellStyle?.border
-              const alignment = cellStyle?.alignment
+              const rs = cell?.resolvedStyle
+              const font = rs?.font
+              const fill = rs?.fill
+              const border = rs?.border
+              const alignment = rs?.alignment
 
-              const bgColor = fill?.fgColor
-              const color = font?.color
-              const fontWeight = font?.bold ? 'bold' : undefined
-              const fontStyle = font?.italic ? 'italic' : undefined
+              const bgColor = fill?.fgColor?.value
+              const color = font?.color?.value
+              const fontWeight = font?.bold?.value ? 'bold' : undefined
+              const fontStyle = font?.italic?.value ? 'italic' : undefined
               const tdParts: string[] = []
-              if (font?.underline) tdParts.push('underline')
-              if (font?.strike) tdParts.push('line-through')
+              if (font?.underline?.value) tdParts.push('underline')
+              if (font?.strike?.value) tdParts.push('line-through')
               const textDecoration = tdParts.length ? tdParts.join(' ') : undefined
-              const fontSize = font?.sz ? `${font.sz}pt` : undefined
-              const fontFamily = font?.name
-              const textAlign = alignment?.horizontal as React.CSSProperties['textAlign']
-              const whiteSpace = alignment?.wrapText ? 'normal' : undefined
+              const fontSize = font?.size?.value ? `${font.size.value}pt` : undefined
+              const fontFamily = font?.name?.value
+              const textAlign = alignment?.horizontal?.value as React.CSSProperties['textAlign']
+              const whiteSpace = alignment?.wrapText?.value ? 'normal' : undefined
               const alignItems =
-                alignment?.vertical === 'center' ? 'center'
-                : alignment?.vertical === 'top' ? 'flex-start'
-                : alignment?.vertical === 'bottom' ? 'flex-end'
+                alignment?.vertical?.value === 'center' ? 'center'
+                : alignment?.vertical?.value === 'top' ? 'flex-start'
+                : alignment?.vertical?.value === 'bottom' ? 'flex-end'
                 : undefined
 
               const borderStyleMap: Record<string, string> = { thin: '1px', medium: '2px', thick: '3px', dashed: '1px', dotted: '1px', double: '3px' }
-              const makeBorder = (side: typeof border extends undefined ? never : NonNullable<typeof border>['top']) =>
-                side?.style ? `${borderStyleMap[side.style] ?? '1px'} solid ${side.color ?? '#000'}` : undefined
+              const makeBorder = (side: { style?: { value: string }; color?: { value: string } } | undefined) =>
+                side?.style?.value ? `${borderStyleMap[side.style.value] ?? '1px'} solid ${side.color?.value ?? '#000'}` : undefined
 
               return (
                 <div

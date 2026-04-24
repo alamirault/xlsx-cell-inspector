@@ -166,3 +166,38 @@ details[open] .sectionTitle::before {
 .emptyIcon {
   font-size: 2.5rem;
 }
+
+.viewToggle {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+}
+
+.toggleBtn {
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #64748b;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  line-height: 1.4;
+  transition: background 0.1s, color 0.1s;
+}
+
+.toggleBtn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.toggleActive {
+  background: #4338ca;
+  border-color: #4338ca;
+  color: #fff;
+}
+
+.toggleActive:hover {
+  background: #3730a3;
+  color: #fff;
+}

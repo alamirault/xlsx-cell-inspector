@@ -1,126 +1,95 @@
 import * as XLSX from 'xlsx'
-import type {
-  WorkbookData,
-  SheetData,
-  CellData,
-  CellStyle,
-  CellType,
-  ColumnInfo,
-  RowInfo,
-} from '../types'
+import { unzipSync } from 'fflate'
+import type { WorkbookData, SheetData, CellData, CellType, ColumnInfo, RowInfo, ResolvedStyle } from '../types'
 import { colIndexToLetter, cellRefFromIndexes } from './cellRef'
 import { colWidthToPx, rowHeightToPx, defaultColWidthPx, defaultRowHeightPx } from './units'
-import { xlsxColorToHex } from './colorUtils'
+import { parseStylesXml, resolveStyle, emptyStylesIndex } from './parseStyles'
+import type { StylesIndex } from './parseStyles'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function extractStyle(raw: any): CellStyle | undefined {
-  if (!raw) return undefined
-  const style: CellStyle = {}
+// ── Worksheet XML: extract cell→styleIndex map ────────────────────────────────
 
-  // SheetJS can produce two formats for cell.s:
-  // - nested: { font: {...}, fill: {...}, border: {...} }
-  // - flat:   { patternType, fgColor, bgColor, bold, ... } (props directly on cell.s)
-  const fontSrc = raw.font ?? (raw.bold !== undefined || raw.italic !== undefined || raw.name !== undefined || raw.sz !== undefined ? raw : null)
-  if (fontSrc) {
-    style.font = {
-      name: fontSrc.name,
-      sz: fontSrc.sz,
-      bold: fontSrc.bold,
-      italic: fontSrc.italic,
-      underline: fontSrc.underline,
-      strike: fontSrc.strike,
-      color: xlsxColorToHex(fontSrc.color),
-    }
+function parseSheetStyleIndices(wsXml: string): Record<string, number> {
+  const map: Record<string, number> = {}
+  // Match <c ...> elements and capture r and s attributes in any order
+  const cellRe = /<c\s([^>]*)>/g
+  let m: RegExpExecArray | null
+  while ((m = cellRe.exec(wsXml)) !== null) {
+    const attrs = m[1]
+    const rM = attrs.match(/\br="([A-Z]+\d+)"/)
+    const sM = attrs.match(/\bs="(\d+)"/)
+    if (rM && sM) map[rM[1]] = parseInt(sM[1], 10)
   }
-
-  const fillSrc = raw.fill ?? (raw.patternType !== undefined ? raw : null)
-  if (fillSrc && fillSrc.patternType !== 'none') {
-    style.fill = {
-      patternType: fillSrc.patternType,
-      fgColor: xlsxColorToHex(fillSrc.fgColor),
-      bgColor: xlsxColorToHex(fillSrc.bgColor),
-    }
-  }
-
-  const borderSrc = raw.border ?? (raw.top !== undefined || raw.left !== undefined || raw.right !== undefined || raw.bottom !== undefined ? raw : null)
-  if (borderSrc) {
-    style.border = {
-      top: borderSrc.top
-        ? { style: borderSrc.top.style, color: xlsxColorToHex(borderSrc.top.color) }
-        : undefined,
-      right: borderSrc.right
-        ? { style: borderSrc.right.style, color: xlsxColorToHex(borderSrc.right.color) }
-        : undefined,
-      bottom: borderSrc.bottom
-        ? { style: borderSrc.bottom.style, color: xlsxColorToHex(borderSrc.bottom.color) }
-        : undefined,
-      left: borderSrc.left
-        ? { style: borderSrc.left.style, color: xlsxColorToHex(borderSrc.left.color) }
-        : undefined,
-      diagonal: borderSrc.diagonal
-        ? { style: borderSrc.diagonal.style, color: xlsxColorToHex(borderSrc.diagonal.color) }
-        : undefined,
-      diagonalUp: borderSrc.diagonalUp,
-      diagonalDown: borderSrc.diagonalDown,
-    }
-  }
-
-  const alignSrc = raw.alignment ?? (raw.horizontal !== undefined || raw.vertical !== undefined || raw.wrapText !== undefined ? raw : null)
-  if (alignSrc) {
-    style.alignment = {
-      horizontal: alignSrc.horizontal,
-      vertical: alignSrc.vertical,
-      wrapText: alignSrc.wrapText,
-      indent: alignSrc.indent,
-      shrinkToFit: alignSrc.shrinkToFit,
-      textRotation: alignSrc.textRotation,
-    }
-  }
-
-  const protSrc = raw.protection ?? (raw.locked !== undefined || raw.hidden !== undefined ? raw : null)
-  if (protSrc) {
-    style.protection = {
-      locked: protSrc.locked,
-      hidden: protSrc.hidden,
-    }
-  }
-
-  if (raw.numFmt !== undefined) {
-    style.numFmt = typeof raw.numFmt === 'string' ? raw.numFmt : XLSX.SSF.get_table()[raw.numFmt]
-    style.numFmtId = typeof raw.numFmt === 'number' ? raw.numFmt : undefined
-  }
-
-  return Object.keys(style).length > 0 ? style : undefined
+  return map
 }
+
+// ── Workbook relationships: sheetName → worksheet file path ──────────────────
+
+function getSheetFilePaths(
+  unzipped: ReturnType<typeof unzipSync>,
+  td: TextDecoder,
+): Record<string, string> {
+  const result: Record<string, string> = {}
+  const wbBytes = unzipped['xl/workbook.xml']
+  const relsBytes = unzipped['xl/_rels/workbook.xml.rels']
+  if (!wbBytes || !relsBytes) return result
+
+  // Parse relationships: Id → Target
+  const relsXml = td.decode(relsBytes)
+  let doc = new DOMParser().parseFromString(relsXml, 'application/xml')
+  const relsMap: Record<string, string> = {}
+  Array.from(doc.getElementsByTagName('Relationship')).forEach((rel) => {
+    const id = rel.getAttribute('Id')
+    const target = rel.getAttribute('Target')
+    if (id && target) relsMap[id] = target
+  })
+
+  // Parse sheet name → r:id from workbook.xml
+  const wbXml = td.decode(wbBytes)
+  doc = new DOMParser().parseFromString(wbXml, 'application/xml')
+  Array.from(doc.getElementsByTagName('sheet')).forEach((sheet) => {
+    const name = sheet.getAttribute('name')
+    const rId =
+      sheet.getAttribute('r:id') ??
+      sheet.getAttributeNS(
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+        'id',
+      )
+    if (name && rId && relsMap[rId]) result[name] = relsMap[rId]
+  })
+  return result
+}
+
+// ── Cell type ─────────────────────────────────────────────────────────────────
 
 function xlsxTypeToCellType(t: string, formula?: string): CellType {
   if (formula) return 'formula'
   switch (t) {
-    case 'n':
-      return 'number'
-    case 's':
-      return 'string'
-    case 'b':
-      return 'boolean'
-    case 'd':
-      return 'date'
+    case 'n': return 'number'
+    case 's': return 'string'
+    case 'b': return 'boolean'
+    case 'd': return 'date'
     case 'z':
-    case 'e':
-      return 'empty'
-    default:
-      return 'string'
+    case 'e': return 'empty'
+    default: return 'string'
   }
 }
 
+// ── Sheet parser ──────────────────────────────────────────────────────────────
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseSheet(ws: any, sheetName: string): SheetData {
+function parseSheet(
+  ws: any,
+  sheetName: string,
+  stylesIndex: StylesIndex,
+  styleIndexMap: Record<string, number>,
+): SheetData {
   const ref: string = ws['!ref'] ?? 'A1'
   const range = XLSX.utils.decode_range(ref)
 
   const rowCount = range.e.r - range.s.r + 1
   const colCount = range.e.c - range.s.c + 1
 
-  // Build column info
+  // Column info
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawCols: any[] = ws['!cols'] ?? []
   const columns: ColumnInfo[] = []
@@ -137,7 +106,7 @@ function parseSheet(ws: any, sheetName: string): SheetData {
     })
   }
 
-  // Build row info
+  // Row info
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rawRows: any[] = ws['!rows'] ?? []
   const rows: RowInfo[] = []
@@ -153,7 +122,7 @@ function parseSheet(ws: any, sheetName: string): SheetData {
     })
   }
 
-  // Build cell data map
+  // Cells
   const cells: Record<string, CellData> = {}
   for (let r = range.s.r; r <= range.e.r; r++) {
     for (let c = range.s.c; c <= range.e.c; c++) {
@@ -162,63 +131,80 @@ function parseSheet(ws: any, sheetName: string): SheetData {
       const cell = ws[xlsxRef]
 
       if (!cell) {
-        cells[cellRef] = {
-          ref: cellRef,
-          rawValue: null,
-          formattedValue: '',
-          type: 'empty',
-        }
+        cells[cellRef] = { ref: cellRef, rawValue: null, formattedValue: '', type: 'empty' }
         continue
       }
 
       const type = xlsxTypeToCellType(cell.t ?? 's', cell.f)
-      const style = extractStyle(cell.s)
-      // SheetJS stores the number format on cell.z (separate from the style object)
-      if (cell.z && cell.z !== 'General') {
-        const mergedStyle = style ?? {}
-        if (!mergedStyle.numFmt) mergedStyle.numFmt = cell.z
-        cells[cellRef] = {
-          ref: cellRef,
-          rawValue: cell.v ?? null,
-          formattedValue: cell.w ?? String(cell.v ?? ''),
-          type,
-          formula: cell.f,
-          style: mergedStyle,
-        }
-        continue
+
+      // Resolve style from our own XML-based index
+      const styleIdx = styleIndexMap[xlsxRef]
+      let resolvedStyle: ResolvedStyle | undefined =
+        styleIdx !== undefined ? resolveStyle(styleIdx, stylesIndex) : undefined
+
+      // Merge cell.z numFmt if not already set from style
+      if (cell.z && cell.z !== 'General' && !resolvedStyle?.numFmt) {
+        resolvedStyle = resolvedStyle ?? {}
+        resolvedStyle.numFmt = { value: cell.z, source: { element: 'cell.z' } }
       }
+
       cells[cellRef] = {
         ref: cellRef,
         rawValue: cell.v ?? null,
         formattedValue: cell.w ?? String(cell.v ?? ''),
         type,
         formula: cell.f,
-        style,
+        resolvedStyle,
       }
     }
   }
 
-  return {
-    name: sheetName,
-    cells,
-    rowCount,
-    colCount,
-    columns,
-    rows,
-    range: ref,
-  }
+  return { name: sheetName, cells, rowCount, colCount, columns, rows, range: ref }
 }
 
+// ── Public API ────────────────────────────────────────────────────────────────
+
 export function parseWorkbook(buffer: ArrayBuffer): WorkbookData {
-  const wb = XLSX.read(new Uint8Array(buffer), {
+  const bytes = new Uint8Array(buffer)
+  const td = new TextDecoder()
+
+  let stylesIndex = emptyStylesIndex()
+  let sheetStyleIndexMaps: Record<string, Record<string, number>> = {}
+
+  try {
+    const unzipped = unzipSync(bytes)
+
+    // Parse styles.xml
+    const stylesBytes = unzipped['xl/styles.xml']
+    if (stylesBytes) {
+      stylesIndex = parseStylesXml(td.decode(stylesBytes))
+    }
+
+    // Get sheet name → worksheet file path mapping
+    const filePaths = getSheetFilePaths(unzipped, td)
+
+    // Parse s attributes from each worksheet XML
+    for (const [sheetName, filePath] of Object.entries(filePaths)) {
+      const key = filePath.startsWith('xl/') ? filePath : `xl/${filePath}`
+      const wsBytes = unzipped[key]
+      if (wsBytes) {
+        sheetStyleIndexMaps[sheetName] = parseSheetStyleIndices(td.decode(wsBytes))
+      }
+    }
+  } catch {
+    // Graceful fallback: parse without styles
+  }
+
+  const wb = XLSX.read(bytes, {
     type: 'array',
-    cellStyles: true,
     cellFormula: true,
     cellDates: true,
     cellNF: true,
   })
 
-  const sheets: SheetData[] = wb.SheetNames.map((name) => parseSheet(wb.Sheets[name], name))
+  const sheets: SheetData[] = wb.SheetNames.map((name) =>
+    parseSheet(wb.Sheets[name], name, stylesIndex, sheetStyleIndexMaps[name] ?? {}),
+  )
 
   return { sheets, activeSheetIndex: 0 }
 }
